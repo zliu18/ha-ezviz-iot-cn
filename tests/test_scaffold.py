@@ -483,6 +483,8 @@ def test_ci_workflows_cover_release_validation() -> None:
 
     assert "actions/checkout@v4" in tests_workflow
     assert "persist-credentials: false" in tests_workflow
+    assert 'python -m pip install --upgrade ".[test]"' in tests_workflow
+    assert "--editable" not in tests_workflow
     assert "python -m pytest -q" in tests_workflow
     assert "python -m ruff format --check ." in tests_workflow
     assert "python -m ruff check ." in tests_workflow
