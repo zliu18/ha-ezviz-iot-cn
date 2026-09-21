@@ -1,0 +1,170 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to the EZVIZ China Open Platform",
+        "description": "Choose an editable name for this Hub, then enter China Open Platform credentials, not EZVIZ app login credentials. AppKey and AppSecret grant access to your devices: keep them private, never place them in screenshots or issue reports, and review the [official API documentation](https://open.ys7.com/help/19) before selecting polling intervals.",
+        "data": {
+          "hub_name": "Hub name",
+          "app_key": "AppKey",
+          "app_secret": "AppSecret",
+          "include_shared_devices": "Include shared (managed) devices"
+        }
+      },
+      "devices": {
+        "title": "Select devices",
+        "description": "Choose how this hub filters the devices currently returned by the Open Platform. **Include** keeps only the selected devices. **Exclude** keeps every current and future device except those selected. Filtering controls entities, polling, and background event processing; a syntactically valid official webhook envelope is still acknowledged before a filtered or unknown target is ignored.",
+        "data": {
+          "device_filter_mode": "Filter mode",
+          "selected_devices": "Devices"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reconnect {name}",
+        "description": "Update the Open Platform credentials for this existing hub. The AppKey must identify the same hub.",
+        "data": {
+          "app_key": "AppKey",
+          "app_secret": "AppSecret"
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure EZVIZ IoT CN",
+        "description": "Replace credentials for the same Open Platform application. A different AppKey must be added as a new hub.",
+        "data": {
+          "app_key": "AppKey",
+          "app_secret": "AppSecret"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect to the EZVIZ China Open Platform",
+      "invalid_auth": "The AppKey or AppSecret is invalid",
+      "invalid_hub_name": "Enter a Hub name between 1 and 64 characters",
+      "rate_limited": "The EZVIZ API rate limit was reached",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This AppKey is already configured",
+      "already_in_progress": "This AppKey is already being configured",
+      "reauth_successful": "Reauthentication was successful",
+      "reconfigure_successful": "Reconfiguration was successful",
+      "unique_id_mismatch": "The AppKey identifies a different hub",
+      "missing_credentials": "The credential step expired; start setup again"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "EZVIZ IoT CN options",
+        "description": "**Near-real-time Cloud Push:** When enabled, EZVIZ can deliver device-native alarm and calling events to this private webhook. Home Assistant immediately returns HTTP 200 with the exact original `messageId`, then parses and deduplicates the event in the background. Keep alarm polling enabled until delivery is verified; polling recovers missed or delayed events and coordinates state after a restart.\n\n**Webhook publishing:** The current URL `{webhook_url}` is sensitive. Use HTTPS and expose only its exact `/api/webhook/...` path; never expose the Home Assistant UI or publish the URL, AppKey, AppSecret, or access token. EZVIZ requires the response within two seconds. An unreachable URL, timeout, or invalid response can trigger retries or degrade Push delivery. Home Assistant shows the new URL in a persistent notification when it is generated for the first time.\n\n**API usage estimate:** {included_device_count} included devices and {capture_channel_count} currently verified capture-capable channels produce an estimated baseline of **{estimated_daily_api_calls} Open Platform API calls/day** plus **{estimated_daily_image_downloads} direct image downloads/day**. The baseline allows two status probes per currently verified light-capable device. It excludes pagination, retries, token refresh, manual refreshes, event-image downloads, device changes, and your application's assigned quota. Shorter intervals increase usage; scheduled capture can consume quota and wake battery-powered devices. Check the [official API documentation](https://open.ys7.com/help/19), [Open Platform Message Push feature development reference](https://open.ys7.com/help/5130), and [Open Platform Console > Cloud Signaling > Message Push](https://open.ys7.com/console/messagePush.html) for authoritative limits and delivery configuration.",
+        "data": {
+          "hub_name": "Hub name",
+          "enable_alarm_polling": "Enable alarm-event polling",
+          "alarm_interval": "Alarm polling interval",
+          "state_interval": "Device-state polling interval",
+          "metadata_interval": "Metadata refresh interval",
+          "enable_scheduled_captures": "Enable scheduled captures",
+          "capture_interval": "Capture interval",
+          "enable_alarm_images": "Download latest alarm and calling images",
+          "motion_hold_seconds": "Motion/person hold time",
+          "enable_native_webhook": "Enable native EZVIZ webhook",
+          "include_shared_devices": "Include shared (managed) devices",
+          "device_filter_mode": "Device filter mode",
+          "selected_devices": "Devices"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect to the EZVIZ China Open Platform",
+      "invalid_auth": "The stored AppKey or AppSecret is invalid",
+      "invalid_hub_name": "Enter a Hub name between 1 and 64 characters",
+      "rate_limited": "The EZVIZ API rate limit was reached",
+      "unknown": "Unexpected error"
+    }
+  },
+  "issues": {
+    "webhook_created": {
+      "description": "Your private EZVIZ Cloud Push webhook URL is:\n\n`{webhook_url}`\n\nThis URL is a sensitive credential. Use HTTPS, expose only its exact `/api/webhook/...` path, and do not share the URL, AppKey, AppSecret, or access token.",
+      "title": "EZVIZ IoT CN webhook created"
+    }
+  },
+  "selector": {
+    "device_filter_mode": {
+      "options": {
+        "include": "Include only selected devices",
+        "exclude": "Exclude selected devices"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "online": {"name": "Online"},
+      "motion": {"name": "Motion detection"},
+      "motion_channel": {"name": "{channel} motion detection"},
+      "person": {"name": "Person detection"},
+      "person_channel": {"name": "{channel} person detection"},
+      "doorbell_ring": {"name": "Doorbell ring"},
+      "doorbell_ring_channel": {"name": "{channel} doorbell ring"}
+    },
+    "button": {
+      "refresh_device_state": {"name": "Refresh status"},
+      "refresh_api_usage": {"name": "Refresh local API counts"},
+      "ptz_up": {"name": "PTZ up"},
+      "ptz_up_channel": {"name": "{channel} PTZ up"},
+      "ptz_down": {"name": "PTZ down"},
+      "ptz_down_channel": {"name": "{channel} PTZ down"},
+      "ptz_left": {"name": "PTZ left"},
+      "ptz_left_channel": {"name": "{channel} PTZ left"},
+      "ptz_right": {"name": "PTZ right"},
+      "ptz_right_channel": {"name": "{channel} PTZ right"}
+    },
+    "image": {
+      "latest_capture": {"name": "Latest capture"},
+      "latest_capture_channel": {"name": "{channel} latest capture"},
+      "latest_alarm": {"name": "Latest alarm image"},
+      "latest_alarm_channel": {"name": "{channel} latest alarm image"},
+      "latest_calling": {"name": "Latest calling image"},
+      "latest_calling_channel": {"name": "{channel} latest calling image"}
+    },
+    "select": {
+      "alarm_sound_mode": {
+        "name": "Alarm sound",
+        "state": {
+          "short_alert": "Short alert",
+          "long_alert": "Long alert",
+          "silent": "Silent"
+        }
+      }
+    },
+    "sensor": {
+      "local_api_requests": {"name": "Local API requests since startup"},
+      "local_api_rate_limits": {"name": "Local API rate limits since startup"},
+      "last_alarm_type": {"name": "Recent alarm type"},
+      "last_alarm_type_channel": {"name": "{channel} recent alarm type"},
+      "last_alarm_time": {"name": "Recent alarm time"},
+      "last_alarm_time_channel": {"name": "{channel} recent alarm time"},
+      "last_calling_time": {"name": "Recent calling time"},
+      "last_calling_time_channel": {"name": "{channel} recent calling time"},
+      "calling_action": {
+        "name": "Calling status",
+        "state": {
+          "ring": "Ring",
+          "answer": "Answered",
+          "hang_up": "Hung up"
+        }
+      },
+      "calling_action_channel": {
+        "name": "{channel} calling status",
+        "state": {
+          "ring": "Ring",
+          "answer": "Answered",
+          "hang_up": "Hung up"
+        }
+      }
+    },
+    "switch": {
+      "alarm_flash": {"name": "Alarm flash"},
+      "defence": {"name": "Alarm arming"}
+    }
+  }
+}

@@ -1,0 +1,66 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ha-ezviz-iot-cn"
+version = "0.1.0"
+description = "Unofficial Home Assistant integration for the EZVIZ China Open Platform"
+readme = "README.md"
+requires-python = ">=3.14.2"
+license = "MIT"
+authors = [{ name = "wxyjay" }]
+dependencies = []
+
+[tool.setuptools.packages.find]
+include = ["custom_components*"]
+namespaces = true
+
+[tool.setuptools.package-data]
+"custom_components.ezviz_iot_cn" = [
+  "brand/*.png",
+  "icons.json",
+  "manifest.json",
+  "strings.json",
+  "translations/*.json",
+]
+
+[project.optional-dependencies]
+test = [
+  "homeassistant==2026.9.2",
+  "mypy==2.3.1",
+  "pytest-homeassistant-custom-component==0.13.365",
+  "ruff==0.16.8",
+]
+
+[tool.pytest.ini_options]
+addopts = "-p pytest_homeassistant_custom_component"
+asyncio_mode = "auto"
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+src = ["custom_components", "tests"]
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["ASYNC", "B", "E", "F", "I", "RUF", "SIM", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["custom_components.ezviz_iot_cn"]
+
+[tool.mypy]
+check_untyped_defs = true
+disallow_any_generics = true
+disallow_incomplete_defs = true
+disallow_untyped_defs = true
+ignore_missing_imports = true
+no_implicit_optional = true
+python_version = "3.14"
+show_error_codes = true
+strict_equality = true
+warn_redundant_casts = true
+warn_return_any = true
+warn_unreachable = true
+warn_unused_ignores = true

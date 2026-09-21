@@ -1,0 +1,57 @@
+"""Constants for EZVIZ IoT CN."""
+
+from homeassistant.const import Platform
+
+DOMAIN = "ezviz_iot_cn"
+
+CONF_APP_KEY = "app_key"
+CONF_APP_SECRET = "app_secret"
+CONF_HUB_NAME = "hub_name"
+CONF_INCLUDE_SHARED_DEVICES = "include_shared_devices"
+CONF_DEVICE_FILTER_MODE = "device_filter_mode"
+CONF_SELECTED_DEVICES = "selected_devices"
+CONF_ENABLE_ALARM_POLLING = "enable_alarm_polling"
+CONF_ALARM_INTERVAL = "alarm_interval"
+CONF_STATE_INTERVAL = "state_interval"
+CONF_METADATA_INTERVAL = "metadata_interval"
+CONF_ENABLE_SCHEDULED_CAPTURES = "enable_scheduled_captures"
+CONF_CAPTURE_INTERVAL = "capture_interval"
+CONF_ENABLE_ALARM_IMAGES = "enable_alarm_images"
+CONF_MOTION_HOLD_SECONDS = "motion_hold_seconds"
+CONF_ENABLE_NATIVE_WEBHOOK = "enable_native_webhook"
+CONF_WEBHOOK_ID = "webhook_id"
+
+FILTER_MODE_INCLUDE = "include"
+FILTER_MODE_EXCLUDE = "exclude"
+DEFAULT_DEVICE_FILTER_MODE = "exclude"
+
+PLATFORMS: tuple[Platform, ...] = (
+    Platform.BINARY_SENSOR,
+    Platform.BUTTON,
+    Platform.IMAGE,
+    Platform.SELECT,
+    Platform.SENSOR,
+    Platform.SWITCH,
+)
+
+DEFAULT_METADATA_INTERVAL = 21600
+MIN_METADATA_INTERVAL = 3600
+MAX_METADATA_INTERVAL = 86400
+
+DEFAULT_ALARM_INTERVAL = 10
+MIN_ALARM_INTERVAL = 10
+MAX_ALARM_INTERVAL = 3600
+
+DEFAULT_STATE_INTERVAL = 60
+MIN_STATE_INTERVAL = 30
+MAX_STATE_INTERVAL = 3600
+
+DEFAULT_CAPTURE_INTERVAL = 600
+MIN_CAPTURE_INTERVAL = 300
+MAX_CAPTURE_INTERVAL = 86400
+
+DEFAULT_MOTION_HOLD_SECONDS = 30
+MIN_MOTION_HOLD_SECONDS = 5
+MAX_MOTION_HOLD_SECONDS = 300
+
+WEBHOOK_ID_PREFIX = "ezviz_iot_cn_"

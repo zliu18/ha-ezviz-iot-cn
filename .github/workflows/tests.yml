@@ -1,0 +1,63 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install development dependencies
+        run: python -m pip install --upgrade --editable ".[test]"
+
+      - name: Run tests
+        run: python -m pytest -q
+
+      - name: Run Ruff
+        run: |
+          python -m ruff format --check .
+          python -m ruff check .
+
+      - name: Run mypy
+        run: python -m mypy custom_components/ezviz_iot_cn
+
+      - name: Compile integration
+        run: python -m compileall -q custom_components
+
+      - name: Check localization parity
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path("custom_components/ezviz_iot_cn")
+          english = json.loads((root / "strings.json").read_text())
+          shipped_english = json.loads(
+              (root / "translations/en.json").read_text()
+          )
+          chinese = json.loads(
+              (root / "translations/zh-Hans.json").read_text()
+          )
+          assert english == shipped_english
+          assert english.keys() == chinese.keys()
+          assert english["config"]["step"].keys() == chinese["config"]["step"].keys()
+          assert english["options"]["step"].keys() == chinese["options"]["step"].keys()
+          assert english["entity"].keys() == chinese["entity"].keys()
+          PY

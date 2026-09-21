@@ -1,0 +1,96 @@
+{
+  "entity": {
+    "binary_sensor": {
+      "person": {
+        "default": "mdi:account-off",
+        "state": {
+          "off": "mdi:account-off",
+          "on": "mdi:account"
+        }
+      },
+      "person_channel": {
+        "default": "mdi:account-off",
+        "state": {
+          "off": "mdi:account-off",
+          "on": "mdi:account"
+        }
+      },
+      "doorbell_ring": {
+        "default": "mdi:doorbell",
+        "state": {
+          "off": "mdi:doorbell",
+          "on": "mdi:bell-ring-outline"
+        }
+      },
+      "doorbell_ring_channel": {
+        "default": "mdi:doorbell",
+        "state": {
+          "off": "mdi:doorbell",
+          "on": "mdi:bell-ring-outline"
+        }
+      }
+    },
+    "button": {
+      "refresh_device_state": {"default": "mdi:refresh"},
+      "refresh_api_usage": {"default": "mdi:refresh"},
+      "ptz_up": {"default": "mdi:arrow-up-bold"},
+      "ptz_up_channel": {"default": "mdi:arrow-up-bold"},
+      "ptz_down": {"default": "mdi:arrow-down-bold"},
+      "ptz_down_channel": {"default": "mdi:arrow-down-bold"},
+      "ptz_left": {"default": "mdi:arrow-left-bold"},
+      "ptz_left_channel": {"default": "mdi:arrow-left-bold"},
+      "ptz_right": {"default": "mdi:arrow-right-bold"},
+      "ptz_right_channel": {"default": "mdi:arrow-right-bold"}
+    },
+    "image": {
+      "latest_capture": {"default": "mdi:camera-iris"},
+      "latest_capture_channel": {"default": "mdi:camera-iris"},
+      "latest_alarm": {"default": "mdi:alarm"},
+      "latest_alarm_channel": {"default": "mdi:alarm"},
+      "latest_calling": {"default": "mdi:bell-ring"},
+      "latest_calling_channel": {"default": "mdi:bell-ring"}
+    },
+    "select": {
+      "alarm_sound_mode": {
+        "default": "mdi:bell",
+        "state": {
+          "short_alert": "mdi:bell",
+          "long_alert": "mdi:bell-ring",
+          "silent": "mdi:bell-off"
+        }
+      }
+    },
+    "sensor": {
+      "local_api_requests": {"default": "mdi:counter"},
+      "local_api_rate_limits": {"default": "mdi:alert-circle-outline"},
+      "last_alarm_type": {"default": "mdi:alarm"},
+      "last_alarm_type_channel": {"default": "mdi:alarm"},
+      "calling_action": {
+        "default": "mdi:phone",
+        "state": {
+          "ring": "mdi:bell-ring",
+          "answer": "mdi:phone-in-talk",
+          "hang_up": "mdi:phone-hangup"
+        }
+      },
+      "calling_action_channel": {
+        "default": "mdi:phone",
+        "state": {
+          "ring": "mdi:bell-ring",
+          "answer": "mdi:phone-in-talk",
+          "hang_up": "mdi:phone-hangup"
+        }
+      }
+    },
+    "switch": {
+      "alarm_flash": {"default": "mdi:alarm-light"},
+      "defence": {
+        "default": "mdi:shield-check",
+        "state": {
+          "off": "mdi:shield-off",
+          "on": "mdi:shield-check"
+        }
+      }
+    }
+  }
+}

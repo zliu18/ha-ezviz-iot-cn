@@ -1,0 +1,170 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "连接萤石中国区开放平台",
+        "description": "请先为此中枢选择一个可编辑名称，再输入中国区开放平台凭据，而不是萤石云视频 App 登录凭据。AppKey 和 AppSecret 可访问并控制设备，请妥善保管，不要放入截图或问题报告；设置轮询间隔前请阅读[官方 API 文档](https://open.ys7.com/help/19)。",
+        "data": {
+          "hub_name": "中枢名称",
+          "app_key": "AppKey",
+          "app_secret": "AppSecret",
+          "include_shared_devices": "包含共享（托管）设备"
+        }
+      },
+      "devices": {
+        "title": "选择设备",
+        "description": "选择此中枢如何筛选开放平台当前返回的设备。**包含**仅保留所选设备；**排除**保留当前及未来新增的所有设备，但忽略所选设备。筛选会控制实体、轮询和后台事件处理；对于结构有效的官方 Webhook 消息，即使目标设备已排除或未知，仍会先正确响应，再忽略本地处理。",
+        "data": {
+          "device_filter_mode": "筛选模式",
+          "selected_devices": "设备"
+        }
+      },
+      "reauth_confirm": {
+        "title": "重新连接 {name}",
+        "description": "更新此中枢的开放平台凭据。AppKey 必须仍然对应同一个中枢。",
+        "data": {
+          "app_key": "AppKey",
+          "app_secret": "AppSecret"
+        }
+      },
+      "reconfigure": {
+        "title": "重新配置 EZVIZ IoT CN",
+        "description": "替换同一个开放平台应用的凭据。其他 AppKey 应作为新中枢添加。",
+        "data": {
+          "app_key": "AppKey",
+          "app_secret": "AppSecret"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "无法连接萤石中国区开放平台",
+      "invalid_auth": "AppKey 或 AppSecret 无效",
+      "invalid_hub_name": "请输入 1 至 64 个字符的中枢名称",
+      "rate_limited": "已达到萤石 API 调用频率限制",
+      "unknown": "发生未知错误"
+    },
+    "abort": {
+      "already_configured": "此 AppKey 已配置",
+      "already_in_progress": "此 AppKey 正在配置中",
+      "reauth_successful": "重新认证成功",
+      "reconfigure_successful": "重新配置成功",
+      "unique_id_mismatch": "AppKey 对应另一个中枢",
+      "missing_credentials": "凭据步骤已失效，请重新开始添加"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "EZVIZ IoT CN 选项",
+        "description": "**接近实时 Cloud Push：**启用后，萤石可将设备原生告警和呼叫事件发送到此私有 Webhook。Home Assistant 会立即返回包含精确原始 `messageId` 的 HTTP 200，再在后台解析和去重。确认真实推送可用前请保留告警轮询；轮询用于恢复遗漏或延迟事件，并在重启后协调事件状态。\n\n**Webhook 发布：**当前 URL `{webhook_url}` 是敏感凭据。必须使用 HTTPS，且只能公开精确的 `/api/webhook/...` 路径；不要公开 Home Assistant 管理界面，也不要分享 URL、AppKey、AppSecret 或 access token。萤石要求在 2 秒内收到响应；URL 不可达、超时或响应格式错误可能触发重试，或导致推送服务降级。首次生成 URL 时，Home Assistant 会通过持久通知显示该 URL。\n\n**API 用量估算：**当前纳入 {included_device_count} 个设备，元数据已确认 {capture_channel_count} 个频道支持抓拍；基础估算为**每天 {estimated_daily_api_calls} 次开放平台 API 调用**，另有**每天 {estimated_daily_image_downloads} 次直接图片下载**。已验证的灯光候选设备按每次元数据周期最多两次状态探测计入。估算不包含分页、重试、令牌刷新、手动刷新、事件图片下载、设备变化和应用实际获配额度。间隔越短，用量越高；定时抓拍会消耗额度，并可能唤醒电池设备。实际限制和推送配置请以[官方 API 文档](https://open.ys7.com/help/19)、[开放平台「消息推送」功能开发参考](https://open.ys7.com/help/5130)和[开放平台控制台 > 云信令 > 消息推送](https://open.ys7.com/console/messagePush.html)为准。",
+        "data": {
+          "hub_name": "中枢名称",
+          "enable_alarm_polling": "启用告警事件轮询",
+          "alarm_interval": "告警轮询间隔",
+          "state_interval": "设备状态轮询间隔",
+          "metadata_interval": "设备元数据刷新间隔",
+          "enable_scheduled_captures": "启用定时抓拍",
+          "capture_interval": "抓拍间隔",
+          "enable_alarm_images": "下载最新告警和呼叫图片",
+          "motion_hold_seconds": "移动和人员状态保持时间",
+          "enable_native_webhook": "启用原生萤石 Webhook",
+          "include_shared_devices": "包含共享（托管）设备",
+          "device_filter_mode": "设备筛选模式",
+          "selected_devices": "设备"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "无法连接萤石中国区开放平台",
+      "invalid_auth": "已保存的 AppKey 或 AppSecret 无效",
+      "invalid_hub_name": "请输入 1 至 64 个字符的中枢名称",
+      "rate_limited": "已达到萤石 API 调用频率限制",
+      "unknown": "发生未知错误"
+    }
+  },
+  "issues": {
+    "webhook_created": {
+      "description": "您的私有萤石 Cloud Push Webhook URL 为：\n\n`{webhook_url}`\n\n此 URL 属于敏感凭据。必须使用 HTTPS，且只能公开其精确的 `/api/webhook/...` 路径；不要分享该 URL、AppKey、AppSecret 或 access token。",
+      "title": "EZVIZ IoT CN Webhook 已生成"
+    }
+  },
+  "selector": {
+    "device_filter_mode": {
+      "options": {
+        "include": "仅包含所选设备",
+        "exclude": "排除所选设备"
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "online": {"name": "在线"},
+      "motion": {"name": "移动侦测"},
+      "motion_channel": {"name": "{channel} 移动侦测"},
+      "person": {"name": "人员检测"},
+      "person_channel": {"name": "{channel} 人员检测"},
+      "doorbell_ring": {"name": "门铃响铃"},
+      "doorbell_ring_channel": {"name": "{channel} 门铃响铃"}
+    },
+    "button": {
+      "refresh_device_state": {"name": "刷新状态"},
+      "refresh_api_usage": {"name": "刷新本地 API 计数"},
+      "ptz_up": {"name": "云台上移"},
+      "ptz_up_channel": {"name": "{channel} 云台上移"},
+      "ptz_down": {"name": "云台下移"},
+      "ptz_down_channel": {"name": "{channel} 云台下移"},
+      "ptz_left": {"name": "云台左移"},
+      "ptz_left_channel": {"name": "{channel} 云台左移"},
+      "ptz_right": {"name": "云台右移"},
+      "ptz_right_channel": {"name": "{channel} 云台右移"}
+    },
+    "image": {
+      "latest_capture": {"name": "最新抓拍"},
+      "latest_capture_channel": {"name": "{channel} 最新抓拍"},
+      "latest_alarm": {"name": "最新告警图片"},
+      "latest_alarm_channel": {"name": "{channel} 最新告警图片"},
+      "latest_calling": {"name": "最新呼叫图片"},
+      "latest_calling_channel": {"name": "{channel} 最新呼叫图片"}
+    },
+    "select": {
+      "alarm_sound_mode": {
+        "name": "告警声音",
+        "state": {
+          "short_alert": "提示音",
+          "long_alert": "告警音",
+          "silent": "静音"
+        }
+      }
+    },
+    "sensor": {
+      "local_api_requests": {"name": "本次运行 API 请求次数"},
+      "local_api_rate_limits": {"name": "本次运行 API 限流次数"},
+      "last_alarm_type": {"name": "最近告警类型"},
+      "last_alarm_type_channel": {"name": "{channel} 最近告警类型"},
+      "last_alarm_time": {"name": "最近告警时间"},
+      "last_alarm_time_channel": {"name": "{channel} 最近告警时间"},
+      "last_calling_time": {"name": "最近呼叫时间"},
+      "last_calling_time_channel": {"name": "{channel} 最近呼叫时间"},
+      "calling_action": {
+        "name": "呼叫状态",
+        "state": {
+          "ring": "响铃",
+          "answer": "已接听",
+          "hang_up": "已挂断"
+        }
+      },
+      "calling_action_channel": {
+        "name": "{channel} 呼叫状态",
+        "state": {
+          "ring": "响铃",
+          "answer": "已接听",
+          "hang_up": "已挂断"
+        }
+      }
+    },
+    "switch": {
+      "alarm_flash": {"name": "告警闪光灯"},
+      "defence": {"name": "告警布防"}
+    }
+  }
+}
