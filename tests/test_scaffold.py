@@ -176,11 +176,15 @@ def test_ui_strings_cover_event_entities_push_security_and_quota_guidance() -> N
             "{included_device_count}",
             "{estimated_daily_api_calls}",
             "{estimated_daily_image_downloads}",
-            "https://open.ys7.com/help/19",
-            "https://open.ys7.com/help/5130",
-            "https://open.ys7.com/console/messagePush.html",
+            "{api_docs_url}",
+            "{message_push_docs_url}",
+            "{message_push_console_url}",
         ):
             assert required in description
+        assert "https://" not in description
+        config_description = document["config"]["step"]["user"]["description"]
+        assert "{api_docs_url}" in config_description
+        assert "https://" not in config_description
 
     english_description = strings["options"]["step"]["init"]["description"]
     for required in (

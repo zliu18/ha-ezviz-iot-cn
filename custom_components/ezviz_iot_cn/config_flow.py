@@ -67,6 +67,9 @@ from .const import (
     MIN_METADATA_INTERVAL,
     MIN_MOTION_HOLD_SECONDS,
     MIN_STATE_INTERVAL,
+    OPEN_PLATFORM_API_DOCS_URL,
+    OPEN_PLATFORM_MESSAGE_PUSH_CONSOLE_URL,
+    OPEN_PLATFORM_MESSAGE_PUSH_DOCS_URL,
 )
 from .coordinator import MetadataSnapshot
 from .filtering import (
@@ -250,6 +253,9 @@ class EzvizIotCnConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ),
             errors=errors,
             last_step=False,
+            description_placeholders={
+                "api_docs_url": OPEN_PLATFORM_API_DOCS_URL,
+            },
         )
 
     async def async_step_devices(
@@ -461,6 +467,9 @@ class EzvizIotCnOptionsFlow(config_entries.OptionsFlow):
             light_capable_device_count=self._light_candidate_count(selected),
         )
         return {
+            "api_docs_url": OPEN_PLATFORM_API_DOCS_URL,
+            "message_push_docs_url": OPEN_PLATFORM_MESSAGE_PUSH_DOCS_URL,
+            "message_push_console_url": OPEN_PLATFORM_MESSAGE_PUSH_CONSOLE_URL,
             "webhook_url": self._webhook_url(),
             "estimated_daily_api_calls": str(estimate.total_api_calls),
             "estimated_daily_image_downloads": str(estimate.image_downloads),

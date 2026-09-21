@@ -49,6 +49,9 @@ from custom_components.ezviz_iot_cn.const import (
     DOMAIN,
     FILTER_MODE_EXCLUDE,
     FILTER_MODE_INCLUDE,
+    OPEN_PLATFORM_API_DOCS_URL,
+    OPEN_PLATFORM_MESSAGE_PUSH_CONSOLE_URL,
+    OPEN_PLATFORM_MESSAGE_PUSH_DOCS_URL,
 )
 from custom_components.ezviz_iot_cn.coordinator import MetadataSnapshot
 
@@ -100,6 +103,9 @@ async def test_user_flow_creates_hub_with_stable_app_key_identity(
         )
         initial = await _start_user_flow(hass)
         assert initial["last_step"] is False
+        assert initial["description_placeholders"] == {
+            "api_docs_url": OPEN_PLATFORM_API_DOCS_URL,
+        }
         generated_hub_name = next(
             marker.default()
             for marker in initial["data_schema"].schema
@@ -793,6 +799,9 @@ async def test_options_show_current_private_webhook_url(
 
     assert result["type"] is data_entry_flow.FlowResultType.FORM
     assert result["description_placeholders"] == {
+        "api_docs_url": OPEN_PLATFORM_API_DOCS_URL,
+        "message_push_docs_url": OPEN_PLATFORM_MESSAGE_PUSH_DOCS_URL,
+        "message_push_console_url": OPEN_PLATFORM_MESSAGE_PUSH_CONSOLE_URL,
         "webhook_url": f"https://ha.example.test/api/webhook/{webhook_id}",
         "estimated_daily_api_calls": "11536",
         "estimated_daily_image_downloads": "0",
@@ -824,6 +833,9 @@ async def test_options_show_placeholder_before_webhook_is_generated(
         result = await hass.config_entries.options.async_init(entry.entry_id)
 
     assert result["description_placeholders"] == {
+        "api_docs_url": OPEN_PLATFORM_API_DOCS_URL,
+        "message_push_docs_url": OPEN_PLATFORM_MESSAGE_PUSH_DOCS_URL,
+        "message_push_console_url": OPEN_PLATFORM_MESSAGE_PUSH_CONSOLE_URL,
         "webhook_url": "-",
         "estimated_daily_api_calls": "11536",
         "estimated_daily_image_downloads": "0",
@@ -879,6 +891,9 @@ async def test_options_estimate_uses_only_verified_capture_channels(
         result = await hass.config_entries.options.async_init(entry.entry_id)
 
     assert result["description_placeholders"] == {
+        "api_docs_url": OPEN_PLATFORM_API_DOCS_URL,
+        "message_push_docs_url": OPEN_PLATFORM_MESSAGE_PUSH_DOCS_URL,
+        "message_push_console_url": OPEN_PLATFORM_MESSAGE_PUSH_CONSOLE_URL,
         "webhook_url": "-",
         "estimated_daily_api_calls": "1736",
         "estimated_daily_image_downloads": "288",

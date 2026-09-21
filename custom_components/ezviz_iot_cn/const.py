@@ -4,6 +4,10 @@ from homeassistant.const import Platform
 
 DOMAIN = "ezviz_iot_cn"
 
+OPEN_PLATFORM_API_DOCS_URL = "https://open.ys7.com/help/19"
+OPEN_PLATFORM_MESSAGE_PUSH_DOCS_URL = "https://open.ys7.com/help/5130"
+OPEN_PLATFORM_MESSAGE_PUSH_CONSOLE_URL = "https://open.ys7.com/console/messagePush.html"
+
 CONF_APP_KEY = "app_key"
 CONF_APP_SECRET = "app_secret"
 CONF_HUB_NAME = "hub_name"
