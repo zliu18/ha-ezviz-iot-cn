@@ -1,0 +1,15 @@
+title: 摄像头总览
+views:
+  - title: 摄像头总览
+    path: cameras
+    type: panel
+    cards:
+      - type: custom:ezviz-camera-overview
+        cameras:
+          - name: 前院
+            entity: camera.example_front
+            image_entity: image.example_front_latest_capture
+            night_vision_entity: select.example_front_night_vision_mode
+            defence_entity: switch.example_front_alarm_arming
+          - name: 车库
+            entity: camera.example_garage

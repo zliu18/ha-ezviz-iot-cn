@@ -22,6 +22,8 @@ Home Assistant；设备事件可通过开放平台「消息推送」Webhook 直�
 > [!IMPORTANT]
 > 本项目不提供实时视频，也不会创建用于播放视频的 `camera` 实体。
 
+[可选的摄像头总览模板](examples/camera-overview/README.md)支持逐路直播、拍照下载和可选的萤石设备控制。
+
 ## 接入范围
 
 | 接入项 | 内容 |

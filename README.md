@@ -24,6 +24,8 @@ arming, alarm sound, PTZ controls, still images, and device-native alarm events.
 > This project does not provide live video and does not create a `camera` entity
 > for video playback.
 
+[Optional camera overview dashboard](examples/camera-overview/README.md) with per-camera live playback, snapshot downloads, and optional EZVIZ controls.
+
 ## Integration scope
 
 | Area | Connected content |
