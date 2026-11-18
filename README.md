@@ -38,7 +38,7 @@ arming, alarm sound, PTZ controls, still images, and device-native alarm events.
 | --- | --- |
 | [Cloud Push Webhook](#cloud-push-webhook) | Receives device-native motion, person, and doorbell/calling events without waiting for the next alarm poll |
 | Recovery | Alarm polling recovers missed or delayed events and coordinates state after Home Assistant restarts |
-| Controls | Alarm arming, alarm sound, verified alarm flash, and capability-gated PTZ buttons |
+| Controls | Alarm arming, alarm sound, verified device light reminder, and capability-gated PTZ buttons |
 | Images | Separate latest capture, alarm, and calling image entities |
 | Multiple hubs | Each AppKey creates an independent Home Assistant hub |
 | Device filtering | Include only selected devices, or exclude selected devices |
@@ -101,11 +101,11 @@ its state cannot be read, the corresponding entity may not be created.
 | Last calling time and calling action sensors | Channel | A valid calling message has been received |
 | Alarm arming switch | Device | Defence capability is present; unavailable while state is unreadable |
 | Alarm sound select | Device | A non-shared device reports `support_alarm_voice > 0` and a valid `alarmSoundMode` (0, 1, or 2) from its status endpoint |
-| Alarm flash switch | Device | A non-shared device reports light capability 2 and the public status endpoint verifies protocol 301/305 and current state |
+| Device light reminder switch | Device | A non-shared device reports light capability 2 and the public status endpoint verifies protocol 301/305 and current state |
 | Refresh status button | Device | Every discovered device; each hub refreshes at most once per minute |
 | Local API request/rate-limit counts and refresh button | Hub | Local observations since integration startup, not official quota |
 | PTZ direction buttons | Channel | The capability set exposes the relevant axis |
-| Latest capture image | Channel | Scheduled capture is enabled and supported; unavailable until the first successful capture |
+| Latest capture image | Channel | Scheduled capture is enabled for this supported channel; unavailable until the first successful capture |
 | Latest alarm image | Channel | Event images enabled and an alarm image observed; unavailable until download succeeds |
 | Latest calling image | Channel | Event images enabled and a calling cover observed; unavailable until download succeeds |
 
@@ -198,6 +198,7 @@ Home Assistant restart.
 | Device-state interval | 60 seconds | 30 seconds to 1 hour |
 | Metadata interval | 6 hours | 1 hour to 24 hours |
 | Scheduled captures | Disabled | Opt in; platform API requests may wake devices |
+| Scheduled capture channels | All supported channels | Select channels to limit capture and the API usage estimate |
 | Capture interval | 10 minutes | 5 minutes to 24 hours |
 
 The options page estimates daily API requests. Increase polling intervals or
@@ -205,6 +206,12 @@ disable scheduled captures to reduce usage. Hub request and rate-limit counts
 are local observations from the current run, not an official remaining quota;
 the refresh-counts button does not contact the platform. Temporary event-image
 downloads use a separate session and are not included in those API counts.
+
+### X5S recorder time zone
+
+To enable this optional control, fill in the X5S private IPv4 address and local recorder credentials in the integration options. Home Assistant stores those credentials in its local integration configuration. The X5S device then offers **Follow Melbourne automatically**, **UTC+10**, and **UTC+11**.
+
+Automatic mode checks every five minutes using the Australia/Melbourne time-zone rules. This control preserves existing NTP settings and requires the recorder to have its own daylight-saving switch off. The entity attributes show its reported UTC and local time drift. On tested firmware, the displayed time may remain unchanged until the recorder next synchronizes with NTP.
 
 ## Security and privacy
 

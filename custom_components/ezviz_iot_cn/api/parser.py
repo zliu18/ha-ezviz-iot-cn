@@ -20,6 +20,8 @@ from .models import (
     EzvizChannel,
     EzvizDevice,
     EzvizPage,
+    NightVisionMode,
+    NightVisionSettings,
 )
 
 JsonMapping = Mapping[str, Any]
@@ -239,6 +241,8 @@ def parse_capabilities(
     return EzvizCapabilities(
         device_serial=device_serial,
         supports_capture=_flag(data.get("support_capture")),
+        supports_night_vision=_flag(data.get("support_night_vision_mode")),
+        supports_smart_night_vision=_flag(data.get("support_smart_night_vision")),
         supports_defence=_flag(data.get("support_defence")),
         supports_ptz=_flag(data.get("support_ptz")),
         ptz_top_bottom=_flag(data.get("ptz_top_bottom")),
@@ -282,6 +286,22 @@ def parse_alarm_page(
             )
         )
     return _page(payload, tuple(events))
+
+
+def parse_night_vision(payload: JsonMapping) -> NightVisionSettings:
+    """Parse the verified NightVision_Model readback shape."""
+    data = _mapping(payload.get("data"), "data")
+    value = _mapping(data.get("valueInfo"), "valueInfo")
+    code = _integer(value.get("graphicType"), "graphicType")
+    duration = _integer(value.get("duration"), "duration")
+    brightness = _integer(value.get("luminance"), "luminance")
+    try:
+        mode = NightVisionMode(code)
+    except ValueError as err:
+        raise EzvizProtocolError("Unknown night-vision mode") from err
+    if not 0 <= duration <= 3600 or not 0 <= brightness <= 100:
+        raise EzvizProtocolError("Invalid illumination range")
+    return NightVisionSettings(mode, duration, brightness)
 
 
 def parse_capture(

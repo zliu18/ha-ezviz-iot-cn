@@ -20,10 +20,14 @@ from .const import (
 from .coordinator import AlarmSnapshot, MetadataSnapshot, StateSnapshot
 from .filtering import configured_device_serials, device_filter_mode
 from .runtime import EzvizConfigEntry
+from .x5s_time import CONF_X5S_HOST, CONF_X5S_PASSWORD, CONF_X5S_USERNAME
 
 _REDACT_KEYS = {
     CONF_APP_KEY,
     CONF_APP_SECRET,
+    CONF_X5S_HOST,
+    CONF_X5S_PASSWORD,
+    CONF_X5S_USERNAME,
     CONF_WEBHOOK_ID,
     "access_token",
     "alarm_id",

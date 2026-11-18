@@ -35,6 +35,7 @@ from .const import (
     CONF_ALARM_INTERVAL,
     CONF_APP_KEY,
     CONF_APP_SECRET,
+    CONF_CAPTURE_CHANNELS,
     CONF_CAPTURE_INTERVAL,
     CONF_DEVICE_FILTER_MODE,
     CONF_ENABLE_ALARM_IMAGES,
@@ -71,7 +72,7 @@ from .const import (
     OPEN_PLATFORM_MESSAGE_PUSH_CONSOLE_URL,
     OPEN_PLATFORM_MESSAGE_PUSH_DOCS_URL,
 )
-from .coordinator import MetadataSnapshot
+from .coordinator import MetadataSnapshot, capture_channel_key, capture_targets
 from .filtering import (
     configured_device_serials,
     device_filter_mode,
@@ -79,6 +80,13 @@ from .filtering import (
     include_shared_devices,
 )
 from .quota import estimate_daily_usage
+from .x5s_time import (
+    CONF_X5S_HOST,
+    CONF_X5S_PASSWORD,
+    CONF_X5S_USERNAME,
+    X5SClient,
+    x5s_host,
+)
 
 _TITLE = "EZVIZ IoT CN"
 _HUB_NAME_PREFIX = f"{_TITLE} Hub"
@@ -407,9 +415,13 @@ class EzvizIotCnOptionsFlow(config_entries.OptionsFlow):
         except Exception as err:
             errors["base"] = _error_key(err)
 
+        options = dict(user_input) if user_input is not None else {}
         if user_input is not None and not errors:
-            options = dict(user_input)
+            await self._validate_x5s(options, errors)
+        if user_input is not None and not errors:
             options.pop(CONF_HUB_NAME)
+            if not options.get(CONF_CAPTURE_CHANNELS):
+                options.pop(CONF_CAPTURE_CHANNELS, None)
             assert hub_name is not None
             self.hass.config_entries.async_update_entry(
                 self.config_entry,
@@ -428,6 +440,48 @@ class EzvizIotCnOptionsFlow(config_entries.OptionsFlow):
             ),
         )
 
+    async def _validate_x5s(
+        self, options: dict[str, Any], errors: dict[str, str]
+    ) -> None:
+        keys = (CONF_X5S_HOST, CONF_X5S_USERNAME, CONF_X5S_PASSWORD)
+        previous = self.config_entry.options
+        if CONF_X5S_HOST not in options:
+            options.update({key: previous[key] for key in keys if key in previous})
+            return
+        address = options[CONF_X5S_HOST].strip()
+        if not address:
+            for key in keys:
+                options.pop(key, None)
+            return
+        try:
+            host = x5s_host(address)
+        except ValueError:
+            errors[CONF_X5S_HOST] = "x5s_invalid_host"
+            return
+        username = options.get(CONF_X5S_USERNAME, "").strip()
+        password = options.get(CONF_X5S_PASSWORD, "")
+        same_recorder = host == previous.get(
+            CONF_X5S_HOST
+        ) and username == previous.get(CONF_X5S_USERNAME)
+        if same_recorder and not password:
+            password = previous.get(CONF_X5S_PASSWORD, "")
+        if not username or not password:
+            errors["base"] = "x5s_missing_credentials"
+            return
+        if not same_recorder or password != previous.get(CONF_X5S_PASSWORD):
+            try:
+                await X5SClient(self.hass, host, username, password).validate()
+            except HomeAssistantError:
+                errors["base"] = "x5s_cannot_connect"
+                return
+        options.update(
+            {
+                CONF_X5S_HOST: host,
+                CONF_X5S_USERNAME: username,
+                CONF_X5S_PASSWORD: password,
+            }
+        )
+
     def _description_placeholders(
         self,
         devices: tuple[EzvizDevice, ...],
@@ -439,7 +493,9 @@ class EzvizIotCnOptionsFlow(config_entries.OptionsFlow):
             values,
             (device.serial for device in devices),
         )
-        capture_channel_count = self._capture_channel_count(selected)
+        capture_channel_count = self._capture_channel_count(
+            selected, values.get(CONF_CAPTURE_CHANNELS, ())
+        )
         estimate = estimate_daily_usage(
             include_shared_devices=include_shared_devices(values),
             enable_alarm_polling=bool(values.get(CONF_ENABLE_ALARM_POLLING, True)),
@@ -477,21 +533,41 @@ class EzvizIotCnOptionsFlow(config_entries.OptionsFlow):
             "capture_channel_count": str(capture_channel_count),
         }
 
-    def _capture_channel_count(self, selected: set[str]) -> int:
-        """Count only channels whose runtime metadata verifies capture support."""
+    def _capture_snapshot(self) -> MetadataSnapshot | None:
         runtime = getattr(self.config_entry, "runtime_data", None)
         coordinator = getattr(runtime, "metadata_coordinator", None)
         snapshot = getattr(coordinator, "data", None)
-        if not isinstance(snapshot, MetadataSnapshot):
+        return snapshot if isinstance(snapshot, MetadataSnapshot) else None
+
+    def _capture_channel_count(
+        self, selected_devices: set[str], selected_channels: list[str] | tuple[str, ...]
+    ) -> int:
+        """Count scheduled channels included in the hub device filter."""
+        snapshot = self._capture_snapshot()
+        if snapshot is None:
             return 0
-        capture_devices = {
-            capabilities.device_serial
-            for capabilities in snapshot.capabilities
-            if capabilities.supports_capture and capabilities.device_serial in selected
-        }
         return sum(
-            channel.device_serial in capture_devices for channel in snapshot.channels
+            channel.device_serial in selected_devices
+            for channel in capture_targets(snapshot, selected_channels)
         )
+
+    def _capture_channel_options(self, configured: list[str]) -> list[SelectOptionDict]:
+        snapshot = self._capture_snapshot()
+        labels: dict[str, str] = {}
+        if snapshot is not None:
+            names = {device.serial: device.name for device in snapshot.devices}
+            for channel in capture_targets(snapshot):
+                key = capture_channel_key(channel)
+                labels[key] = (
+                    f"{names[channel.device_serial]} · "
+                    f"{channel.name or channel.channel_no} ({key})"
+                )
+        # Keep saved choices when metadata is unavailable or a device vanishes.
+        for key in configured:
+            labels.setdefault(key, key)
+        return [
+            SelectOptionDict(value=key, label=label) for key, label in labels.items()
+        ]
 
     def _light_candidate_count(self, selected: set[str]) -> int:
         """Count only directly controlled devices with verified light capability."""
@@ -559,6 +635,18 @@ class EzvizIotCnOptionsFlow(config_entries.OptionsFlow):
                     default=options.get(CONF_ENABLE_SCHEDULED_CAPTURES, False),
                 ): BooleanSelector(),
                 vol.Optional(
+                    CONF_CAPTURE_CHANNELS,
+                    default=list(options.get(CONF_CAPTURE_CHANNELS, ())),
+                ): SelectSelector(
+                    SelectSelectorConfig(
+                        options=self._capture_channel_options(
+                            list(options.get(CONF_CAPTURE_CHANNELS, ()))
+                        ),
+                        multiple=True,
+                        mode=SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional(
                     CONF_CAPTURE_INTERVAL,
                     default=options.get(
                         CONF_CAPTURE_INTERVAL, DEFAULT_CAPTURE_INTERVAL
@@ -578,6 +666,19 @@ class EzvizIotCnOptionsFlow(config_entries.OptionsFlow):
                     CONF_ENABLE_NATIVE_WEBHOOK,
                     default=options.get(CONF_ENABLE_NATIVE_WEBHOOK, False),
                 ): BooleanSelector(),
+                vol.Optional(
+                    CONF_X5S_HOST,
+                    default=options.get(CONF_X5S_HOST, ""),
+                ): TextSelector(TextSelectorConfig(autocomplete="off")),
+                vol.Optional(
+                    CONF_X5S_USERNAME,
+                    default=options.get(CONF_X5S_USERNAME, ""),
+                ): TextSelector(TextSelectorConfig(autocomplete="off")),
+                vol.Optional(CONF_X5S_PASSWORD): TextSelector(
+                    TextSelectorConfig(
+                        type=TextSelectorType.PASSWORD, autocomplete="off"
+                    )
+                ),
                 **_device_filter_schema_items(
                     devices,
                     mode=device_filter_mode(options),
@@ -586,7 +687,14 @@ class EzvizIotCnOptionsFlow(config_entries.OptionsFlow):
             }
         )
         if user_input:
-            return self.add_suggested_values_to_schema(schema, user_input)
+            return self.add_suggested_values_to_schema(
+                schema,
+                {
+                    key: value
+                    for key, value in user_input.items()
+                    if key != CONF_X5S_PASSWORD
+                },
+            )
         return schema
 
 

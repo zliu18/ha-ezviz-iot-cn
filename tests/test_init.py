@@ -69,6 +69,7 @@ def test_platforms_are_explicit_and_complete() -> None:
         Platform.BINARY_SENSOR,
         Platform.BUTTON,
         Platform.IMAGE,
+        Platform.NUMBER,
         Platform.SELECT,
         Platform.SENSOR,
         Platform.SWITCH,

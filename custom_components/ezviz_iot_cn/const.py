@@ -19,6 +19,7 @@ CONF_ALARM_INTERVAL = "alarm_interval"
 CONF_STATE_INTERVAL = "state_interval"
 CONF_METADATA_INTERVAL = "metadata_interval"
 CONF_ENABLE_SCHEDULED_CAPTURES = "enable_scheduled_captures"
+CONF_CAPTURE_CHANNELS = "capture_channels"
 CONF_CAPTURE_INTERVAL = "capture_interval"
 CONF_ENABLE_ALARM_IMAGES = "enable_alarm_images"
 CONF_MOTION_HOLD_SECONDS = "motion_hold_seconds"
@@ -33,6 +34,7 @@ PLATFORMS: tuple[Platform, ...] = (
     Platform.BINARY_SENSOR,
     Platform.BUTTON,
     Platform.IMAGE,
+    Platform.NUMBER,
     Platform.SELECT,
     Platform.SENSOR,
     Platform.SWITCH,

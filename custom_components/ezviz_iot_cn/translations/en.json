@@ -58,12 +58,16 @@
         "title": "EZVIZ IoT CN options",
         "description": "**Near-real-time Cloud Push:** When enabled, EZVIZ can deliver device-native alarm and calling events to this private webhook. Home Assistant immediately returns HTTP 200 with the exact original `messageId`, then parses and deduplicates the event in the background. Keep alarm polling enabled until delivery is verified; polling recovers missed or delayed events and coordinates state after a restart.\n\n**Webhook publishing:** The current URL `{webhook_url}` is sensitive. Use HTTPS and expose only its exact `/api/webhook/...` path; never expose the Home Assistant UI or publish the URL, AppKey, AppSecret, or access token. EZVIZ requires the response within two seconds. An unreachable URL, timeout, or invalid response can trigger retries or degrade Push delivery. Home Assistant shows the new URL in a persistent notification when it is generated for the first time.\n\n**API usage estimate:** {included_device_count} included devices and {capture_channel_count} currently verified capture-capable channels produce an estimated baseline of **{estimated_daily_api_calls} Open Platform API calls/day** plus **{estimated_daily_image_downloads} direct image downloads/day**. The baseline allows two status probes per currently verified light-capable device. It excludes pagination, retries, token refresh, manual refreshes, event-image downloads, device changes, and your application's assigned quota. Shorter intervals increase usage; scheduled capture can consume quota and wake battery-powered devices. Check the [official API documentation]({api_docs_url}), [Open Platform Message Push feature development reference]({message_push_docs_url}), and [Open Platform Console > Cloud Signaling > Message Push]({message_push_console_url}) for authoritative limits and delivery configuration.",
         "data": {
+          "x5s_host": "X5S LAN IP address (blank to disable)",
+          "x5s_username": "X5S local username",
+          "x5s_password": "X5S local password (leave blank to keep the saved password)",
           "hub_name": "Hub name",
           "enable_alarm_polling": "Enable alarm-event polling",
           "alarm_interval": "Alarm polling interval",
           "state_interval": "Device-state polling interval",
           "metadata_interval": "Metadata refresh interval",
           "enable_scheduled_captures": "Enable scheduled captures",
+          "capture_channels": "Scheduled capture channels (empty means all supported channels)",
           "capture_interval": "Capture interval",
           "enable_alarm_images": "Download latest alarm and calling images",
           "motion_hold_seconds": "Motion/person hold time",
@@ -75,6 +79,9 @@
       }
     },
     "error": {
+      "x5s_invalid_host": "Enter a private LAN IPv4 address",
+      "x5s_missing_credentials": "Enter the X5S local username and password",
+      "x5s_cannot_connect": "Unable to read X5S time. Check its address and local credentials",
       "cannot_connect": "Unable to connect to the EZVIZ China Open Platform",
       "invalid_auth": "The stored AppKey or AppSecret is invalid",
       "invalid_hub_name": "Enter a Hub name between 1 and 64 characters",
@@ -126,7 +133,27 @@
       "latest_calling": {"name": "Latest calling image"},
       "latest_calling_channel": {"name": "{channel} latest calling image"}
     },
+    "number": {
+      "night_vision_duration": { "name": "Fill light duration" },
+      "night_vision_brightness": { "name": "Fill light brightness" }
+    },
     "select": {
+      "x5s_time_zone": {
+        "name": "Recorder time zone",
+        "state": {
+          "melbourne_auto": "Follow Melbourne automatically",
+          "utc_plus_10": "UTC+10",
+          "utc_plus_11": "UTC+11"
+        }
+      },
+      "night_vision_mode": {
+        "name": "Night vision mode",
+        "state": {
+          "full_color": "Full color",
+          "monochrome": "Monochrome",
+          "smart": "Smart"
+        }
+      },
       "alarm_sound_mode": {
         "name": "Alarm sound",
         "state": {
@@ -163,7 +190,7 @@
       }
     },
     "switch": {
-      "alarm_flash": {"name": "Alarm flash"},
+      "alarm_flash": {"name": "Device light reminder"},
       "defence": {"name": "Alarm arming"}
     }
   }

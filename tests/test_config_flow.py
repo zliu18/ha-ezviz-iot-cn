@@ -29,6 +29,7 @@ from custom_components.ezviz_iot_cn.const import (
     CONF_ALARM_INTERVAL,
     CONF_APP_KEY,
     CONF_APP_SECRET,
+    CONF_CAPTURE_CHANNELS,
     CONF_CAPTURE_INTERVAL,
     CONF_DEVICE_FILTER_MODE,
     CONF_ENABLE_ALARM_IMAGES,
@@ -845,9 +846,11 @@ async def test_options_show_placeholder_before_webhook_is_generated(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("restrict_channels", [False, True])
 async def test_options_estimate_uses_only_verified_capture_channels(
     hass,
     enable_custom_integrations,
+    restrict_channels: bool,
 ) -> None:
     """The UI estimate uses runtime capabilities and never guesses support."""
     entry = MockConfigEntry(
@@ -861,6 +864,7 @@ async def test_options_estimate_uses_only_verified_capture_channels(
             CONF_METADATA_INTERVAL: 43200,
             CONF_ENABLE_SCHEDULED_CAPTURES: True,
             CONF_CAPTURE_INTERVAL: 600,
+            **({CONF_CAPTURE_CHANNELS: [f"{SERIAL_1}:2"]} if restrict_channels else {}),
         },
         unique_id=hub_uid(APP_KEY),
     )
@@ -895,10 +899,10 @@ async def test_options_estimate_uses_only_verified_capture_channels(
         "message_push_docs_url": OPEN_PLATFORM_MESSAGE_PUSH_DOCS_URL,
         "message_push_console_url": OPEN_PLATFORM_MESSAGE_PUSH_CONSOLE_URL,
         "webhook_url": "-",
-        "estimated_daily_api_calls": "1736",
-        "estimated_daily_image_downloads": "288",
+        "estimated_daily_api_calls": "1592" if restrict_channels else "1736",
+        "estimated_daily_image_downloads": "144" if restrict_channels else "288",
         "included_device_count": "1",
-        "capture_channel_count": "2",
+        "capture_channel_count": "1" if restrict_channels else "2",
     }
 
 

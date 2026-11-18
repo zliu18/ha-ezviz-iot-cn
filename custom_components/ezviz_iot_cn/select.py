@@ -18,7 +18,13 @@ from .entity import (
     async_setup_dynamic_entities,
     capabilities_by_serial,
 )
+from .night_vision import (
+    NIGHT_VISION_OPTION_BY_MODE,
+    NIGHT_VISION_OPTIONS,
+    EzvizNightVisionEntity,
+)
 from .runtime import EzvizConfigEntry
+from .x5s_time import CONF_X5S_HOST, CONF_X5S_PASSWORD, CONF_X5S_USERNAME, X5STimeSelect
 
 ALARM_SOUND_DESCRIPTION = SelectEntityDescription(
     key="alarm_sound_mode",
@@ -41,7 +47,11 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up capability-driven EZVIZ alarm-sound selects."""
-    del hass
+    if all(
+        entry.options.get(key)
+        for key in (CONF_X5S_HOST, CONF_X5S_USERNAME, CONF_X5S_PASSWORD)
+    ):
+        async_add_entities([X5STimeSelect(hass, entry)])
     async_setup_dynamic_entities(
         entry,
         async_add_entities,
@@ -54,7 +64,7 @@ def _entities_for_snapshot(
     snapshot: MetadataSnapshot,
 ) -> Iterable[SelectEntity]:
     capabilities = capabilities_by_serial(snapshot)
-    return (
+    yield from (
         EzvizAlarmSoundSelect(entry, device)
         for device in snapshot.devices
         if not device.is_shared
@@ -62,6 +72,40 @@ def _entities_for_snapshot(
         and (capability := capabilities.get(device.serial)) is not None
         and capability.supports_alarm_sound
     )
+
+    yield from (
+        EzvizNightVisionSelect(entry, device)
+        for device in snapshot.devices
+        if device.night_vision is not None
+    )
+
+
+class EzvizNightVisionSelect(EzvizNightVisionEntity, SelectEntity):
+    """Offer the three night-vision modes provided by the C3C."""
+
+    entity_description = SelectEntityDescription(
+        key="night_vision_mode",
+        translation_key="night_vision_mode",
+    )
+
+    def __init__(self, entry: EzvizConfigEntry, device: EzvizDevice) -> None:
+        super().__init__(entry, device, self.entity_description.key)
+        self._attr_options = list(NIGHT_VISION_OPTIONS)
+
+    @property
+    @override
+    def current_option(self) -> str | None:
+        """Return the device's current night-vision option."""
+        if (settings := self.settings) is None:
+            return None
+        return NIGHT_VISION_OPTION_BY_MODE.get(settings.mode)
+
+    @override
+    async def async_select_option(self, option: str) -> None:
+        """Set the mode while preserving duration and brightness."""
+        if option not in NIGHT_VISION_OPTIONS:
+            raise ValueError("Unsupported night-vision option")
+        await self.async_update_settings(mode=NIGHT_VISION_OPTIONS[option])
 
 
 class EzvizAlarmSoundSelect(EzvizDeviceEntity, SelectEntity):

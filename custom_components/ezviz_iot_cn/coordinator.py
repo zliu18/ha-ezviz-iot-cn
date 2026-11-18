@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Collection
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 
@@ -60,6 +60,29 @@ class MetadataSnapshot:
     channels: tuple[EzvizChannel, ...]
     capabilities: tuple[EzvizCapabilities, ...]
     alarm_light_probe_reasons: tuple[str, ...] = ()
+
+
+def capture_channel_key(channel: EzvizChannel) -> str:
+    """Identify a capture channel in the options, independently of its display name."""
+    return f"{channel.device_serial}:{channel.channel_no}"
+
+
+def capture_targets(
+    snapshot: MetadataSnapshot, selected: Collection[str] = ()
+) -> tuple[EzvizChannel, ...]:
+    """Return supported channels, restricted to the selection when configured."""
+    capable = {
+        capability.device_serial
+        for capability in snapshot.capabilities
+        if capability.supports_capture
+    }
+    included = {device.serial for device in snapshot.devices} & capable
+    return tuple(
+        channel
+        for channel in snapshot.channels
+        if channel.device_serial in included
+        and (not selected or capture_channel_key(channel) in selected)
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -276,6 +299,38 @@ class EzvizMetadataCoordinator(_EzvizCoordinator[MetadataSnapshot]):
             )
         return tuple(enriched), tuple(reasons)
 
+    async def _async_enrich_night_vision(
+        self,
+        devices: tuple[EzvizDevice, ...],
+        capabilities: tuple[EzvizCapabilities, ...],
+    ) -> tuple[EzvizDevice, ...]:
+        supported = {
+            capability.device_serial
+            for capability in capabilities
+            if capability.supports_night_vision
+            and capability.supports_smart_night_vision
+        }
+        enriched = []
+        for device in devices:
+            if (
+                device.model == "CS-C3C-3H2EFRL"
+                and device.serial in supported
+                and not device.is_shared
+                and device.online
+            ):
+                try:
+                    night_vision = await self._client.async_get_night_vision(
+                        device.serial
+                    )
+                except EzvizError as err:
+                    _LOGGER.debug(
+                        "Unable to read night vision (%s)", type(err).__name__
+                    )
+                else:
+                    device = replace(device, night_vision=night_vision)
+            enriched.append(device)
+        return tuple(enriched)
+
     async def _async_update_data(self) -> MetadataSnapshot:
         async def fetch() -> MetadataSnapshot:
             include_shared = include_shared_devices(self._entry.options)
@@ -300,6 +355,7 @@ class EzvizMetadataCoordinator(_EzvizCoordinator[MetadataSnapshot]):
             devices, reasons = await self._async_enrich_alarm_light_states(
                 devices, channels, capabilities
             )
+            devices = await self._async_enrich_night_vision(devices, capabilities)
             return MetadataSnapshot(devices, channels, capabilities, reasons)
 
         async def scheduled() -> MetadataSnapshot:

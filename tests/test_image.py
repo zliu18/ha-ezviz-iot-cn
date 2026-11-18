@@ -28,6 +28,7 @@ from custom_components.ezviz_iot_cn.api.models import (
     hub_uid,
 )
 from custom_components.ezviz_iot_cn.const import (
+    CONF_CAPTURE_CHANNELS,
     CONF_CAPTURE_INTERVAL,
     CONF_ENABLE_ALARM_IMAGES,
     CONF_ENABLE_SCHEDULED_CAPTURES,
@@ -472,8 +473,10 @@ async def test_calling_image_is_created_lazily_and_kept_separate(hass: Any) -> N
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("restrict_channels", [False, True])
 async def test_capture_cycle_is_sequential_and_staggered_across_interval(
     hass: Any,
+    restrict_channels: bool,
 ) -> None:
     """Scheduled channels run one at a time with an even bounded spacing."""
     entry = _entry(
@@ -481,6 +484,7 @@ async def test_capture_cycle_is_sequential_and_staggered_across_interval(
             CONF_ENABLE_SCHEDULED_CAPTURES: True,
             CONF_ENABLE_ALARM_IMAGES: False,
             CONF_CAPTURE_INTERVAL: 600,
+            **({CONF_CAPTURE_CHANNELS: [f"{SERIAL_2}:1"]} if restrict_channels else {}),
         }
     )
     entry.add_to_hass(hass)
@@ -520,9 +524,9 @@ async def test_capture_cycle_is_sequential_and_staggered_across_interval(
 
     await image_platform.async_capture_cycle(entry, sleep=sleep)
 
-    assert captures == [SERIAL_1, SERIAL_2]
-    assert delays == [300.0, 300.0]
-    assert runtime.image_cache.count == 2
+    assert captures == ([SERIAL_2] if restrict_channels else [SERIAL_1, SERIAL_2])
+    assert delays == ([600.0] if restrict_channels else [300.0, 300.0])
+    assert runtime.image_cache.count == len(captures)
     await metadata_coordinator.async_shutdown()
     await state_coordinator.async_shutdown()
     await reconciler.async_close()

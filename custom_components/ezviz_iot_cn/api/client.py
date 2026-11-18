@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import random
 from collections.abc import Awaitable, Callable, Mapping
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -32,6 +34,8 @@ from .models import (
     EzvizChannel,
     EzvizDevice,
     EzvizPage,
+    NightVisionMode,
+    NightVisionSettings,
     PtzDirection,
 )
 from .parser import (
@@ -42,11 +46,13 @@ from .parser import (
     parse_channel_page,
     parse_device_page,
     parse_device_status_alarm_sound_mode,
+    parse_night_vision,
     parse_token,
 )
 from .usage import ApiUsageSnapshot, ApiUsageTracker
 
 BASE_URL = URL("https://open.ys7.com/api/lapp")
+NIGHT_VISION_URL = URL("https://open.ys7.com/api/v3/keyValue")
 # Official CN authentication guide: https://open.ys7.com/doc/zh/pc/page2.html
 TOKEN_URL = BASE_URL / "token/get"
 # Official device data reference: https://open.ys7.com/doc/zh/pc/group__data.html
@@ -79,6 +85,7 @@ _TOKEN_EXPIRED_CODES = frozenset({"10002"})
 _RATE_LIMIT_CODES = frozenset({"10007", "10029", "20034"})
 _NOT_SUPPORTED_CODES = frozenset({"20014", "60020"})
 _MAX_READ_ATTEMPTS = 3
+_NIGHT_VISION_READBACK_DELAYS = (0, 1, 2, 4, 7)
 _MAX_PAGES = 1000
 _TOKEN_REFRESH_MARGIN = timedelta(seconds=60)
 _MAX_ALARM_RANGE = timedelta(days=7)
@@ -115,6 +122,7 @@ class EzvizApiClient:
         self._usage_tracker = usage_tracker or ApiUsageTracker(now=self._now)
         self._token: AccessToken | None = None
         self._token_lock = asyncio.Lock()
+        self._night_vision_lock = asyncio.Lock()
 
     @property
     def usage_snapshot(self) -> ApiUsageSnapshot:
@@ -251,6 +259,91 @@ class EzvizApiClient:
             payload,
             requested_protocol=protocol,
         )
+
+    async def _async_night_vision_request(
+        self, serial: str, *, value: str | None = None
+    ) -> JsonObject:
+        url = NIGHT_VISION_URL / serial / "1" / "op"
+        fields = {
+            "accessToken": await self._async_access_token(),
+            "key": "NightVision_Model",
+        }
+        if value is None:
+            payload = await self._async_http_json(
+                "GET", url, headers={}, params=fields, retryable=False
+            )
+        else:
+            payload = await self._async_http_json(
+                "PUT",
+                url,
+                headers={},
+                params={},
+                form={**fields, "value": value},
+                retryable=False,
+            )
+        meta = payload.get("meta")
+        if not isinstance(meta, Mapping):
+            raise EzvizProtocolError("Night-vision response metadata missing")
+        self._raise_for_application_code(meta)
+        return payload
+
+    async def async_get_night_vision(self, serial: str) -> NightVisionSettings:
+        """Read one C3C device's current night-vision parameters."""
+        async with self._night_vision_lock:
+            return parse_night_vision(await self._async_night_vision_request(serial))
+
+    async def async_update_night_vision(
+        self,
+        serial: str,
+        *,
+        mode: NightVisionMode | None = None,
+        duration: int | None = None,
+        brightness: int | None = None,
+    ) -> NightVisionSettings:
+        """Preserve other parameters and verify the camera's readback."""
+        async with self._night_vision_lock:
+            before = parse_night_vision(await self._async_night_vision_request(serial))
+            wanted = replace(
+                before,
+                mode=before.mode if mode is None else mode,
+                duration=before.duration if duration is None else duration,
+                brightness=before.brightness if brightness is None else brightness,
+            )
+            if wanted == before:
+                return before
+            if (
+                not isinstance(wanted.mode, NightVisionMode)
+                or not 0 <= wanted.duration <= 3600
+                or not 0 <= wanted.brightness <= 100
+            ):
+                raise ValueError("Invalid night-vision settings")
+            payload = await self._async_night_vision_request(
+                serial,
+                value=json.dumps(
+                    {
+                        "graphicType": wanted.mode.value,
+                        "duration": wanted.duration,
+                        "luminance": wanted.brightness,
+                    }
+                ),
+            )
+            data = payload.get("data")
+            if not isinstance(data, Mapping) or data.get("result") != "OK":
+                raise EzvizProtocolError("Night-vision write was not confirmed")
+            # The API acknowledges dispatch before this firmware applies the change.
+            # Retry only reads and never repeat an acknowledged write.
+            for delay in _NIGHT_VISION_READBACK_DELAYS:
+                if delay:
+                    await self._sleep(delay)
+                try:
+                    observed = parse_night_vision(
+                        await self._async_night_vision_request(serial)
+                    )
+                except EzvizConnectionError:
+                    continue
+                if observed == wanted:
+                    return observed
+            raise EzvizProtocolError("Night-vision readback did not match")
 
     async def async_capture(
         self,
@@ -542,6 +635,7 @@ class EzvizApiClient:
         headers: Mapping[str, str],
         params: Mapping[str, str | int],
         retryable: bool,
+        form: Mapping[str, str] | None = None,
     ) -> JsonObject:
         attempts = _MAX_READ_ATTEMPTS if retryable else 1
         last_error: BaseException | None = None
@@ -553,6 +647,15 @@ class EzvizApiClient:
                         url,
                         headers=dict(headers),
                         params=dict(params),
+                        timeout=self._timeout,
+                        allow_redirects=False,
+                    )
+                elif method == "PUT":
+                    request_context = self._session.put(
+                        url,
+                        headers=dict(headers),
+                        params=dict(params),
+                        data=form,
                         timeout=self._timeout,
                         allow_redirects=False,
                     )

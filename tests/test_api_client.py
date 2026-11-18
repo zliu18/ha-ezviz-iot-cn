@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from collections import defaultdict, deque
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
@@ -22,6 +23,7 @@ from custom_components.ezviz_iot_cn.api.client import (
     CAPTURE_URL,
     DEFENCE_SET_URL,
     DEVICE_LIST_URL,
+    NIGHT_VISION_URL,
     PTZ_START_URL,
     PTZ_STOP_URL,
     TOKEN_URL,
@@ -30,12 +32,14 @@ from custom_components.ezviz_iot_cn.api.client import (
 from custom_components.ezviz_iot_cn.api.errors import (
     EzvizAuthError,
     EzvizConnectionError,
+    EzvizProtocolError,
     EzvizRateLimitError,
 )
 from custom_components.ezviz_iot_cn.api.models import (
     AlarmLightProtocol,
     AlarmSoundMode,
     EventSource,
+    NightVisionMode,
     PtzDirection,
 )
 
@@ -145,6 +149,11 @@ class _FakeSession:
         self.requests.append(request)
         payload = spec.callback(form) if spec.callback else spec.payload
         return _FakeResponse(spec, payload)
+
+    def put(self, url: URL, **kwargs) -> _FakeResponse:
+        response = self.post(url, **kwargs)
+        self.requests[-1]["method"] = "PUT"
+        return response
 
     def get(
         self,
@@ -748,3 +757,59 @@ async def test_image_download_delegates_without_using_open_api_session() -> None
     downloader.async_download.assert_awaited_once_with("https://image.example/test.jpg")
     downloader.async_close.assert_awaited_once_with()
     assert session.calls == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("confirmed", [True, False])
+async def test_night_vision_update_preserves_other_parameters_and_checks_readback(
+    confirmed: bool,
+) -> None:
+    session = _FakeSession()
+    session.add(TOKEN_URL, payload=TOKEN_PAYLOAD)
+    serial = "SYNTHETIC-SERIAL"
+    endpoint = NIGHT_VISION_URL / serial / "1" / "op"
+
+    def payload(mode: int) -> dict:
+        return {
+            "meta": {"code": 200},
+            "data": {
+                "valueInfo": {
+                    "graphicType": mode,
+                    "duration": 90,
+                    "luminance": 73,
+                }
+            },
+        }
+
+    session.add(endpoint, payload=payload(2))
+    session.add(endpoint, payload={"meta": {"code": 200}, "data": {"result": "OK"}})
+    session.add(endpoint, payload=payload(2))
+    session.add(endpoint, payload=payload(1 if confirmed else 2), repeat=True)
+    sleep = AsyncMock()
+    client = _client(session, sleep=sleep)
+    if confirmed:
+        result = await client.async_update_night_vision(
+            serial, mode=NightVisionMode.FULL_COLOR
+        )
+        assert result.mode is NightVisionMode.FULL_COLOR
+        assert (result.duration, result.brightness) == (90, 73)
+    else:
+        with pytest.raises(EzvizProtocolError, match="readback did not match"):
+            await client.async_update_night_vision(
+                serial, mode=NightVisionMode.FULL_COLOR
+            )
+    requests = [request for request in session.requests if request["url"] == endpoint]
+    expected_reads = 2 if confirmed else 5
+    assert [request["method"] for request in requests] == [
+        "GET",
+        "PUT",
+        *(["GET"] * expected_reads),
+    ]
+    assert [call.args[0] for call in sleep.await_args_list] == (
+        [1] if confirmed else [1, 2, 4, 7]
+    )
+    assert json.loads(session.calls_for(endpoint)[1]["value"]) == {
+        "graphicType": 1,
+        "duration": 90,
+        "luminance": 73,
+    }

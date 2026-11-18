@@ -83,6 +83,24 @@ class EzvizPage[T]:
     total: int
 
 
+class NightVisionMode(IntEnum):
+    """NightVision_Model graphicType values."""
+
+    MONOCHROME = 0
+    FULL_COLOR = 1
+    SMART = 2
+    HUMAN_COLOR = 3
+
+
+@dataclass(frozen=True, slots=True)
+class NightVisionSettings:
+    """Current illumination settings returned by the camera."""
+
+    mode: NightVisionMode
+    duration: int
+    brightness: int
+
+
 @dataclass(frozen=True, slots=True)
 class EzvizDevice:
     """Account-level EZVIZ device state."""
@@ -97,6 +115,7 @@ class EzvizDevice:
     is_shared: bool = False
     alarm_light_enabled: bool | None = None
     alarm_light_protocol: AlarmLightProtocol | None = None
+    night_vision: NightVisionSettings | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,6 +143,8 @@ class EzvizCapabilities:
     alarm_voice_level: int | None = None
     active_defense_level: int | None = None
     pir_detection_level: int | None = None
+    supports_night_vision: bool = False
+    supports_smart_night_vision: bool = False
 
     @property
     def supports_alarm_sound(self) -> bool:

@@ -16,6 +16,7 @@ from .api.errors import EzvizError
 from .api.models import EzvizChannel, EzvizDevice
 from .api.scheduler import RequestPriority
 from .const import (
+    CONF_CAPTURE_CHANNELS,
     CONF_CAPTURE_INTERVAL,
     CONF_ENABLE_ALARM_IMAGES,
     CONF_ENABLE_SCHEDULED_CAPTURES,
@@ -23,11 +24,10 @@ from .const import (
     MAX_CAPTURE_INTERVAL,
     MIN_CAPTURE_INTERVAL,
 )
-from .coordinator import MetadataSnapshot
+from .coordinator import MetadataSnapshot, capture_targets
 from .entity import (
     EzvizChannelEntity,
     async_setup_dynamic_entities,
-    capabilities_by_serial,
     devices_by_serial,
 )
 from .event import ReconciledAlarmState, ReconciledCallingState
@@ -94,8 +94,11 @@ def _entities_for_snapshot(
     snapshot: MetadataSnapshot,
 ) -> Iterable[ImageEntity]:
     devices = devices_by_serial(snapshot)
-    capabilities = capabilities_by_serial(snapshot)
-    scheduled_enabled = bool(entry.options.get(CONF_ENABLE_SCHEDULED_CAPTURES, False))
+    scheduled = (
+        set(capture_targets(snapshot, entry.options.get(CONF_CAPTURE_CHANNELS, ())))
+        if entry.options.get(CONF_ENABLE_SCHEDULED_CAPTURES, False)
+        else set()
+    )
     event_images_enabled = bool(entry.options.get(CONF_ENABLE_ALARM_IMAGES, True))
     observed = entry.runtime_data.observed_registry
     entities: list[ImageEntity] = []
@@ -103,12 +106,7 @@ def _entities_for_snapshot(
         device = devices.get(channel.device_serial)
         if device is None:
             continue
-        device_capabilities = capabilities.get(device.serial)
-        if (
-            scheduled_enabled
-            and device_capabilities is not None
-            and device_capabilities.supports_capture
-        ):
+        if channel in scheduled:
             entities.append(
                 EzvizCachedImage(
                     hass,
@@ -157,8 +155,11 @@ def _cache_keys_for_snapshot(
     snapshot: MetadataSnapshot,
 ) -> set[ImageCacheKey]:
     devices = devices_by_serial(snapshot)
-    capabilities = capabilities_by_serial(snapshot)
-    scheduled_enabled = bool(entry.options.get(CONF_ENABLE_SCHEDULED_CAPTURES, False))
+    scheduled = (
+        set(capture_targets(snapshot, entry.options.get(CONF_CAPTURE_CHANNELS, ())))
+        if entry.options.get(CONF_ENABLE_SCHEDULED_CAPTURES, False)
+        else set()
+    )
     event_images_enabled = bool(entry.options.get(CONF_ENABLE_ALARM_IMAGES, True))
     observed = entry.runtime_data.observed_registry
     keys: set[ImageCacheKey] = set()
@@ -189,12 +190,7 @@ def _cache_keys_for_snapshot(
                     ImageKind.CALLING,
                 )
             )
-        device_capabilities = capabilities.get(channel.device_serial)
-        if (
-            scheduled_enabled
-            and device_capabilities is not None
-            and device_capabilities.supports_capture
-        ):
+        if channel in scheduled:
             keys.add(
                 ImageCacheKey(
                     channel.device_serial,
@@ -370,18 +366,6 @@ class EzvizCachedImage(EzvizChannelEntity, ImageEntity):
         )
 
 
-def _capture_targets(snapshot: MetadataSnapshot) -> tuple[EzvizChannel, ...]:
-    capabilities = capabilities_by_serial(snapshot)
-    devices = devices_by_serial(snapshot)
-    return tuple(
-        channel
-        for channel in snapshot.channels
-        if channel.device_serial in devices
-        and (device_capabilities := capabilities.get(channel.device_serial)) is not None
-        and device_capabilities.supports_capture
-    )
-
-
 def _capture_interval(entry: EzvizConfigEntry) -> int:
     value = entry.options.get(CONF_CAPTURE_INTERVAL, DEFAULT_CAPTURE_INTERVAL)
     try:
@@ -397,7 +381,10 @@ async def async_capture_cycle(
     sleep: SleepCallable = asyncio.sleep,
 ) -> None:
     """Capture current supported channels sequentially across one interval."""
-    targets = _capture_targets(entry.runtime_data.metadata_coordinator.data)
+    targets = capture_targets(
+        entry.runtime_data.metadata_coordinator.data,
+        entry.options.get(CONF_CAPTURE_CHANNELS, ()),
+    )
     interval = _capture_interval(entry)
     if not targets:
         await sleep(float(interval))
